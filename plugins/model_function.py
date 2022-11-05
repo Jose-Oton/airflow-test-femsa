@@ -1,5 +1,4 @@
 from typing import Callable, Optional
-
 import json
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
@@ -26,24 +25,24 @@ def build_python_operator(dag: DAG, task_name: str, function_name: Callable,
 
 
 def read_csv():
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/german_credit_data.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/german_credit_data.csv", index_col=0)
     return df_credit
 
 
 def csv_create_categorical_variables():
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/german_credit_data.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/german_credit_data.csv", index_col=0)
     # Let's look the Credit Amount column
     interval = (18, 25, 35, 60, 120)
 
     cats = ['Student', 'Young', 'Adult', 'Senior']
     df_credit["Age_cat"] = pd.cut(df_credit.Age, interval, labels=cats)
-    df_credit.to_csv('/opt/airflow/plugins/includes/dataset_categorical_var.csv')
+    df_credit.to_csv('/opt/airflow/includes/dataset_categorical_var.csv')
 
     return 0
 
 
 def transform_data():
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/dataset_categorical_var.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/dataset_categorical_var.csv", index_col=0)
     print(df_credit)
 
     df_credit['Saving accounts'] = df_credit['Saving accounts'].fillna('no_inf')
@@ -69,14 +68,14 @@ def transform_data():
     # Housing get Age categorical
     df_credit = df_credit.merge(pd.get_dummies(df_credit["Age_cat"], drop_first=True, prefix='Age_cat'),
                                 left_index=True, right_index=True)
-    df_credit.to_csv('/opt/airflow/plugins/includes/transform_data.csv')
+    df_credit.to_csv('/opt/airflow/includes/transform_data.csv')
 
     return 0
 
 
 def delete_cols():
     # Excluding the missing columns
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/transform_data.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/transform_data.csv", index_col=0)
 
     del df_credit["Saving accounts"]
     del df_credit["Checking account"]
@@ -86,13 +85,13 @@ def delete_cols():
     del df_credit["Age_cat"]
     del df_credit["Risk"]
     del df_credit['Risk_good']
-    df_credit.to_csv('/opt/airflow/plugins/includes/delete_cols.csv')
+    df_credit.to_csv('/opt/airflow/includes/delete_cols.csv')
 
     return 0
 
 
 def train_model():
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/delete_cols.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/delete_cols.csv", index_col=0)
 
     df_credit['Credit amount'] = np.log(df_credit['Credit amount'])
     # Creating the X and y variables
@@ -119,12 +118,12 @@ def train_model():
     # Predicting using our  model
     y_pred = rf.predict(X_test)
     final_y = pd.DataFrame( {'y_test': y_test, 'y_pred': y_pred})
-    final_y.to_csv('/opt/airflow/plugins/includes/final_y.csv')
+    final_y.to_csv('/opt/airflow/includes/final_y.csv')
     return 0
 
 
 def write_results():
-    df_credit = pd.read_csv("/opt/airflow/plugins/includes/final_y.csv", index_col=0)
+    df_credit = pd.read_csv("/opt/airflow/includes/final_y.csv", index_col=0)
 
     y_test = df_credit['y_test']
     y_pred = df_credit['y_pred']
@@ -138,5 +137,5 @@ def write_results():
             'fbeta_score': fbeta_score(y_test, y_pred, beta=2)}
     final_results = pd.DataFrame(data, index=[0])
     print(final_results)
-    final_results.to_csv('/opt/airflow/plugins/includes/final_results.csv', index=False)
+    final_results.to_csv('/opt/airflow/includes/final_results.csv', index=False)
     return 0
